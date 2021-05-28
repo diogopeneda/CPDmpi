@@ -23,6 +23,7 @@ struct pairPos {
 struct pos_projection {
     int pos;
     double *projection;
+    double distance_to_a;
 };
 
 int printPosProjections(struct pos_projection *projections, int n_dims, long n_points) {
@@ -179,6 +180,7 @@ struct pos_projection *findOrthogonalProjection(double **points, int n_dims, int
             //build projection
             pointsWithProjection[i].projection[k] = beta[k] * pi + points[AB.posA][k];
         }
+        pointsWithProjection[i].distance_to_a = fabs(pi);
         free(alfa);
     }
     free(beta);
@@ -190,9 +192,9 @@ int cmpfunc(const void *a, const void *b) {
     struct pos_projection *orderA = (struct pos_projection *) a;
     struct pos_projection *orderB = (struct pos_projection *) b;
 
-    if ((double) orderA->projection[0] > (double) orderB->projection[0])
+    if ((double) orderA->distance_to_a > (double) orderB->distance_to_a)
         return 1;
-    else if ((double) orderA->projection[0] < (double) orderB->projection[0])
+    else if ((double) orderA->distance_to_a < (double) orderB->distance_to_a)
         return -1;
     else
         return 0;
@@ -205,17 +207,22 @@ struct node *ballTreeAlgo(double **points, int n_dims, long n_points, int id) {
     struct nodeValue value;
     struct pos_projection *pointsWithProjection;
 
+    long n_left, n_right;
+    int reversed = 0;
+
     value.node_id = id;
     value.n_dims = n_dims;
     value.center_coordinates = (double *) malloc(n_dims * sizeof(double));
-
+    //printf("n_points = %d\n", n_points);
     if (n_points > 1) {
         struct pairPos pairPos;
         pairPos = findPairMostDistance(points, n_dims, n_points);
         pointsWithProjection = findOrthogonalProjection(points, n_dims, n_points, pairPos);
 
         qsort(pointsWithProjection, n_points, sizeof(struct pos_projection), cmpfunc);
-
+        if(pointsWithProjection[pairPos.posA].projection[0] > pointsWithProjection[pairPos.posB].projection[0]){
+            reversed = 1;
+        }
 
         if (n_points % 2 == 0) {
             // Compute average
@@ -224,21 +231,25 @@ struct node *ballTreeAlgo(double **points, int n_dims, long n_points, int id) {
 
 
             firstCenter = (n_points / 2);
-            secondCenter = firstCenter + 1;
+            secondCenter = firstCenter - 1;
             int i;
 
-            struct pos_projection posProjectionFirstCenter = pointsWithProjection[firstCenter - 1];
-            struct pos_projection posProjectionSecondCenter = pointsWithProjection[secondCenter - 1];
+            struct pos_projection posProjectionFirstCenter = pointsWithProjection[firstCenter];
+            struct pos_projection posProjectionSecondCenter = pointsWithProjection[secondCenter];
             for (i = 0; i < n_dims; i++) {
                 double firstCenterX = posProjectionFirstCenter.projection[i];
                 double secondCenterX = posProjectionSecondCenter.projection[i];
                 value.center_coordinates[i] = (firstCenterX + secondCenterX) / 2;
             }
+            n_left = firstCenter;
+            n_right = firstCenter;
         } else {
-            int centerProjection = (n_points / 2) + 1;
+            int centerProjection = (n_points-1)/1;
             for (int i = 0; i < n_dims; i++) {
-                value.center_coordinates[i] = pointsWithProjection[centerProjection - 1].projection[i];
+                value.center_coordinates[i] = pointsWithProjection[centerProjection].projection[i];
             }
+            n_left = centerProjection;
+            n_right = centerProjection + 1;
         }
     } else {
         for (int i = 0; i < n_dims; i++) {
@@ -251,16 +262,17 @@ struct node *ballTreeAlgo(double **points, int n_dims, long n_points, int id) {
     root = createNode(value);
 
     int j;
-    int leftPos = 0;
-    int rightPos = 0;
+    //int leftPos = 0;
+    //int rightPos = 0;
+    //printf("n_points = %d\n", n_points);
 
     if (n_points > 1) {
-        double **left = create_array_pts(n_dims, n_points);
-        double **right = create_array_pts(n_dims, n_points);
+        double **left = create_array_pts(n_left, n_points);
+        double **right = create_array_pts(n_right, n_points);
 
-        leftPos = 0;
-        rightPos = 0;
-        for (j = 0; j < n_points && pointsWithProjection != NULL; j++) {
+        //leftPos = 0;
+        //rightPos = 0;
+        /* for (j = 0; j < n_points && pointsWithProjection != NULL; j++) {
             if (pointsWithProjection[j].projection[0] < value.center_coordinates[0]) {
                 int z;
                 for (z = 0; z < n_dims; z++) {
@@ -274,6 +286,31 @@ struct node *ballTreeAlgo(double **points, int n_dims, long n_points, int id) {
                 }
                 rightPos++;
             }
+        } */
+        if(reversed == 0){
+            for(long i = 0; i<n_points; i++){
+                if(i < n_left){
+                    for (int z = 0; z < n_dims; z++) {
+                        left[i][z] = points[pointsWithProjection[i].pos][z];
+                    }
+                }else{
+                    for (int z = 0; z < n_dims; z++) {
+                        right[i-n_left][z] = points[pointsWithProjection[i].pos][z];
+                    }
+                }
+            }
+        }else{
+            for(long i = 0; i<n_points; i++){
+                if(i < n_right){
+                    for (int z = 0; z < n_dims; z++) {
+                        right[i][z] = points[pointsWithProjection[i].pos][z];
+                    }
+                }else{
+                    for (int z = 0; z < n_dims; z++) {
+                        left[i-n_right][z] = points[pointsWithProjection[i].pos][z];
+                    }
+                }
+            }
         }
 
         //free points with projection
@@ -282,17 +319,17 @@ struct node *ballTreeAlgo(double **points, int n_dims, long n_points, int id) {
         }
         free(pointsWithProjection);
 
-        if (leftPos > 0) {
+        if (n_left > 0) {
             global++;
-            root->left = ballTreeAlgo(left, n_dims, leftPos, global);
+            root->left = ballTreeAlgo(left, n_dims, n_left, global);
 
             free(left[0]);
             free(left);
         }
 
-        if (rightPos > 0) {
+        if (n_right > 0) {
             global++;
-            root->right = ballTreeAlgo(right, n_dims, rightPos, global);
+            root->right = ballTreeAlgo(right, n_dims, n_right, global);
 
             free(right[0]);
             free(right);
