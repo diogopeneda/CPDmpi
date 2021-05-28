@@ -320,7 +320,7 @@ struct node *ballTreeAlgo(double **points, int n_dims, long n_points, int id) {
 
         if (n_left > 0) {
             global++;
-            root->left = ballTreeAlgo(left, n_dims, left, global);
+            root->left = ballTreeAlgo(left, n_dims, n_left, global);
 
             free(left[0]);
             free(left);
@@ -328,7 +328,7 @@ struct node *ballTreeAlgo(double **points, int n_dims, long n_points, int id) {
 
         if (n_right > 0) {
             global++;
-            root->right = ballTreeAlgo(right, n_dims, right, global);
+            root->right = ballTreeAlgo(right, n_dims, n_right, global);
 
             free(right[0]);
             free(right);
