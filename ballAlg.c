@@ -220,7 +220,7 @@ struct node *ballTreeAlgo(double **points, int n_dims, long n_points, int id) {
         pointsWithProjection = findOrthogonalProjection(points, n_dims, n_points, pairPos);
 
         qsort(pointsWithProjection, n_points, sizeof(struct pos_projection), cmpfunc);
-        if(pointsWithProjection[pairPos.posA][0] > pointsWithProjection[pairPos.posB][0]){
+        if(pointsWithProjection[pairPos.posA].projection[0] > pointsWithProjection[pairPos.posB].projection[0]){
             reversed = 1;
         }
 
@@ -287,7 +287,7 @@ struct node *ballTreeAlgo(double **points, int n_dims, long n_points, int id) {
             }
         } */
         if(reversed == 0){
-            for(long i = 0; i<n_points, i++){
+            for(long i = 0; i<n_points; i++){
                 if(i < n_left){
                     for (int z = 0; z < n_dims; z++) {
                         left[i][z] = points[pointsWithProjection[i].pos][z];
@@ -299,7 +299,7 @@ struct node *ballTreeAlgo(double **points, int n_dims, long n_points, int id) {
                 }
             }
         }else{
-            for(long i = 0; i<n_points, i++){
+            for(long i = 0; i<n_points; i++){
                 if(i < n_right){
                     for (int z = 0; z < n_dims; z++) {
                         right[i][z] = points[pointsWithProjection[i].pos][z];
@@ -320,7 +320,7 @@ struct node *ballTreeAlgo(double **points, int n_dims, long n_points, int id) {
 
         if (n_left > 0) {
             global++;
-            root->left = ballTreeAlgo(left, n_dims, leftPos, global);
+            root->left = ballTreeAlgo(left, n_dims, left, global);
 
             free(left[0]);
             free(left);
@@ -328,7 +328,7 @@ struct node *ballTreeAlgo(double **points, int n_dims, long n_points, int id) {
 
         if (n_right > 0) {
             global++;
-            root->right = ballTreeAlgo(right, n_dims, rightPos, global);
+            root->right = ballTreeAlgo(right, n_dims, right, global);
 
             free(right[0]);
             free(right);
