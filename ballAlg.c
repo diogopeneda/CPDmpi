@@ -315,14 +315,86 @@ int main(int argc, char *argv[]) {
 
     //get points
     points = get_points(argc, argv, &n_dims, &n_points);
+    printf("gives: %f\n", ceil(log2(n_points))+1);
+    int n_nodes = 0;
+    int i;
+    long max_pow = ceil(log2(n_points));
+    for(i = 0; i<max_pow; i++){
+        printf("has %d nodes\n", n_nodes);
+        n_nodes = n_nodes + pow(2, i);
+    }
+    printf("has %d nodes\n", n_nodes);
+    n_nodes = n_nodes + (n_points - pow(2,max_pow-1))*2;
+    printf("has %d nodes\n", n_nodes);
+
+
 
     //printPoints(points, n_dims, n_points);
     root = ballTreeAlgo(points, n_dims, n_points, 0);
     exec_time += omp_get_wtime();
 
+
+    int n_proc = 8;
+    int* my_team = (int*) malloc(n_proc*sizeof(int));
+    int* my_procs = (int*) malloc(n_proc*sizeof(int));
+    for(int i = 0; i<n_proc; i++){
+        my_team[i] = i;
+        my_procs[i] = n_proc;
+    }
+
+    
+
+    printf("\n8=============================D\n");
+    for(int i = 8; i > 0; i=floor(i/2)){
+        printf("For iteration with %d processes:\n", i);
+        printf("Team is: ");
+        for(int j = 0; j<n_proc; j++){
+            printf("[%d] ", my_team[j]);
+        }
+        printf("\n");
+
+        /* if(i == 1){
+            for(int j = 0; j<n_proc; j++){
+                printf("proc: %d is on its own\n", j);
+            }
+        }else{ */
+            
+            for(int j = 0; j<n_proc; j++){
+                printf("proc: %d has %d\n", j, my_procs[j]);
+                if(my_procs[j]==1){
+                    printf("proc: %d is on its own\n", j);
+                }else if(my_team[j]<my_procs[j]/2){
+                    printf("proc: %d goes left\n", j);
+                    my_procs[j] = floor(my_procs[j]/2);
+                    //my_procs[j] = (my_procs[j]-(my_procs[j])%2)/2;
+                    
+                    if(my_team[j] >= my_procs[j]){
+                        my_team[j] = my_team[j]- my_procs[j];
+                    }
+                
+                }else{
+                    printf("proc: %d goes right\n", j);
+                    //my_procs[j] = floor(my_procs[j]/2);
+                    //my_procs[j] = (my_procs[j]-(my_procs[j])%2)/2;
+                    my_procs[j] = floor(my_procs[j]/2) + my_procs[j]%2;
+                    if(my_team[j] >= my_procs[j]){
+                        my_team[j] = my_team[j]- my_procs[j];
+                    }
+                }    
+            }
+        //}
+
+        printf("ceil [%d]\n", (int)ceil(log2(6)));
+
+
+
+    }
+
+
+
     //Print first line
-    printf("%d %d \n", n_dims, nodeLevel);
-    postorderTraversal(root);
+    //printf("%d %d \n", n_dims, nodeLevel);
+    //postorderTraversal(root);
 
     //stop timer
     fprintf(stderr, "%.1lf\n", exec_time);
