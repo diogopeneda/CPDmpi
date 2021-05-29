@@ -255,7 +255,6 @@ struct node *ballTreeAlgo(int* point_indexes, int n_dims, long n_points, int id)
     int n_left, n_right, *left_ids, *right_ids;
     int reversed = 0;
 
-    nodeLevel++;
     value.node_id = id;
     value.n_dims = n_dims;
     value.center_coordinates = (double *) malloc(n_dims * sizeof(double));
@@ -339,7 +338,6 @@ struct node *ballTreeAlgo(int* point_indexes, int n_dims, long n_points, int id)
         }
         //send to recursive on right
         if(n_left > 0){
-            global++;
             root->right = ballTreeAlgo(right_ids, n_dims, n_right, ((id+1)*2));
         }
         return root;
@@ -487,7 +485,7 @@ void start_algo()
         value.n_dims = my_parameters->n_dims;
         value.center_coordinates = (double *) malloc(my_parameters->n_dims * sizeof(double));
         
-        if(n_points>1){
+        if(n_points_total>1){
             int* furthest_pair = get_furthest_pair_first(my_parameters->n_dims, n_points_total);
             struct pos_projection* ortogonal_projections = get_ortogonal_projections_first(my_parameters->n_dims, n_points_total, furthest_pair);
             qsort(ortogonal_projections, n_points_total, sizeof(struct pos_projection), cmpfunc);
@@ -557,26 +555,26 @@ void start_algo()
             }else{
                 //split comm
                 if(my_parameters->process_id%2 == 0){
-                    MPI_Comm_split(MPI_COMM_WORLD, 1, my_parameters->process_id, my_parameters->my_split_comm);
+                    MPI_Comm_split(MPI_COMM_WORLD, 1, my_parameters->process_id, &my_parameters->my_split_comm);
                     MPI_Comm_size(MPI_COMM_WORLD, &my_parameters->split_n_processes);
                     MPI_Comm_rank(MPI_COMM_WORLD, &my_parameters->split_process_id);
                     if(n_left > 0){
                         if(my_parameters->split_n_processes == 1){
                             my_parameters->my_root = ballTreeAlgo(left_ids, my_parameters->n_dims, n_left, 1);
                         }else{
-                            ballTreeAlgoBranch(left_ids, my_parameters->n_dims, n_left, 1);
+                            //ballTreeAlgoBranch(left_ids, my_parameters->n_dims, n_left, 1);
                         }        
                          
                     } 
                 }else{
-                    MPI_Comm_split(MPI_COMM_WORLD, 2, my_parameters->process_id, my_parameters->my_split_comm);
+                    MPI_Comm_split(MPI_COMM_WORLD, 2, my_parameters->process_id, &my_parameters->my_split_comm);
                     MPI_Comm_size(MPI_COMM_WORLD, &my_parameters->split_n_processes);
                     MPI_Comm_rank(MPI_COMM_WORLD, &my_parameters->split_process_id);
                     if(n_right > 0){
                         if(my_parameters->split_n_processes == 1){
                             my_parameters->my_root = ballTreeAlgo(right_ids, my_parameters->n_dims, n_right, 2);
                         }else{
-                            ballTreeAlgoBranch(right_ids, my_parameters->n_dims, n_right, 2);
+                            //ballTreeAlgoBranch(right_ids, my_parameters->n_dims, n_right, 2);
                         } 
                         
                     }
@@ -625,9 +623,9 @@ int main(int argc, char *argv[]) {
     long n_nodes_aux = 0;
     long max_pow = ceil(log2(n_points));
     for(int i = 0; i<ceil(log2(n_points_total)); i++){
-        n_nodes = n_nodes + pow(2, i);
+        n_nodes_aux = n_nodes_aux + pow(2, i);
     }
-    my_parameters->n_nodes = n_nodes_aux + (n_points - pow(2,max_pow-1))*2;
+    my_parameters->n_nodes = n_nodes_aux + (n_points_total - pow(2,max_pow-1))*2;
     my_parameters->my_elements = NULL;
     my_parameters->n_my_points = n_points_total;
     my_parameters->n_iteration = 0;
@@ -653,7 +651,7 @@ int main(int argc, char *argv[]) {
         if(i == my_parameters->process_id){
             if(i == 0){
                 //Print first line
-                printf("%d %d \n", my_parameters->n_dims, my_parameters->n_nodes);
+                printf("%d %ld \n", my_parameters->n_dims, my_parameters->n_nodes);
             }
             for(int j = 0; j<my_parameters->branch_size; j++){
                 if(j == my_parameters->process_id){
