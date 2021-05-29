@@ -493,7 +493,7 @@ void start_algo()
                 reversed = 1;
             }
             free(furthest_pair);
-            if(n_points%2 == 0){
+            if(n_points_total%2 == 0){
                 int firstCenter = (n_points_total / 2);
                 int secondCenter = firstCenter - 1;
                 for (int i = 0; i < n_dims; i++) {
@@ -523,7 +523,7 @@ void start_algo()
             right_ids = (int*) malloc (n_right*sizeof(int));
             if(reversed == 0){
                 //left to right
-                for(long i=0; i<n_points; i++){
+                for(long i=0; i<n_points_total; i++){
                     if(i < n_left){//left
                         left_ids[i] = ortogonal_projections[i].point_id;
                     }else{//right
@@ -532,7 +532,7 @@ void start_algo()
                 }
             }else{
                 //right to left
-                for(long i=0; i<n_points; i++){
+                for(long i=0; i<n_points_total; i++){
                     if(i < n_right){//right
                         right_ids[i] = ortogonal_projections[i].point_id;
                     }else{//left
@@ -540,7 +540,7 @@ void start_algo()
                     }
                 }
             }
-            for(long i = 0; i < n_points; i++){
+            for(long i = 0; i < n_points_total; i++){
                 free(ortogonal_projections[i].projection);
             }
             free(ortogonal_projections);
