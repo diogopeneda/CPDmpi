@@ -1,4 +1,4 @@
-all: program1 program2
+all: program1 program2 program3
 program1: ballAlg.c
 		gcc -fopenmp -O3 -o ballAlg ballAlg.c -lm
 
